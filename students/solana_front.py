@@ -117,15 +117,14 @@ def display_solana_front():
     st.markdown("## 🤖 Price Prediction")
     st.info("This section helps you to predict the next-day HIGH price of Solana.")
 
-    prediction_date = st.date_input("Select input date for prediction", dt.date.today())
+    st.write(f"Actual date for prediction: {dt.date.today()}")
 
     if st.button("Generate Prediction"):
-        params = {"date": prediction_date.strftime("%Y-%m-%d")}
         try:
-            response = requests.get(API_URL, params=params)
+            response = requests.get(API_URL)
             if response.status_code == 200:
                 result = response.json()
-                st.success(f"Predicted next-day high price: ${result['prediction']['high_price']:.2f}")
+                st.success(f"Predicted next-day high price: ${result['high_price']:.2f}")
             else:
                 st.warning(f"Failed to get prediction — API Response: {response.json()}")
         except Exception as e:
