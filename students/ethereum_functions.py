@@ -23,13 +23,6 @@ def create_tecnical_indicators(
         raise KeyError(f"the column 'close' is not in the DataFrame")
     df_copy['sma_7'] = df_copy['close'].rolling(window = 7).mean().bfill()
     df_copy['ema_7'] = df_copy['close'].ewm(span = 7, adjust = False).mean().bfill()
-    delta = df_copy['close'].diff().bfill()
-    gain = np.where(delta > 0, delta, 0)
-    loss = np.where(delta < 0, delta, 0)
-    mean_gain = Series(gain).rolling(window = 14).mean()
-    mean_loss = Series(loss).rolling(window = 14).mean()
-    rs = mean_gain / mean_loss
-    df_copy['rsi_14'] = 100 - (100 / (1 + rs))
     return df_copy
     
  
@@ -47,7 +40,7 @@ class CriptoInfo:
         self.prices = None
         self.raw_additional = None
         self.market_data = None
-    @st.cache_data
+    # @st.cache_data
     def fetch_ohlc(
         self,
         periods : int = 30 # 7, 14, 30, 90, 180, 365 possible values
@@ -94,7 +87,7 @@ class CriptoInfo:
         filtered_data.reset_index(drop = True, inplace = True)
         filtered_data['timestamp'] = filtered_data['timestamp'].dt.date
         self.prices = filtered_data
-    @st.cache_data
+    # @st.cache_data
     def fetch_additional_info(
         self,
         periods : int = 30
@@ -159,7 +152,7 @@ class CriptoInfo:
             on = "timestamp"
         )
         return temp
-    @st.cache_data
+    # @st.cache_data
     def get_market_data(
         self
     ):

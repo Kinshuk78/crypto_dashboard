@@ -1,7 +1,7 @@
 import requests
 import streamlit as st
 from pandas import to_datetime
-from ethereum_functions import CriptoInfo, create_tecnical_indicators
+from .ethereum_functions import CriptoInfo, create_tecnical_indicators, create_daily_returns
 import plotly.graph_objects as go
 
 ETH_API_URL = "https://at3-api-ethereum.onrender.com/predict/ethereum"
@@ -15,13 +15,13 @@ def display_ethereum_front():
     helper.fetch_additional_info(periods = days)
     helper.modify_raw_prices()
     data = helper.generate_input()
+    data['timestamp'] = to_datetime(data['timestamp'])
     data.set_index(keys = 'timestamp', inplace = True)
-    data.index = to_datetime(input.index)
     if data is not None:
         st.subheader(f"Ethereum - Last {days} days")
         fig = go.Figure(data=[
             go.Candlestick(
-                x = data['timestamp'],
+                x = data.index,
                 open = data['open'],
                 high = data['high'],
                 low = data['low'],
@@ -41,12 +41,13 @@ def display_ethereum_front():
     
     if data is not None:
         data = create_tecnical_indicators(data)
+        data = create_daily_returns(data)
         st.markdown("#### Technical indicators")
         col1, col2 = st.columns(2)
         with col1:
             st.line_chart(data[['close', 'sma_7', 'ema_7']])
         with col2:
-            st.line_chart(data[['rsi_14']])
+            st.line_chart(data[['daily_returns']], y_label = 'daily returns')
     
     st.markdown("### Price prediction")
     st.info("This section helps you predict the highest price of the next day from the available information")
@@ -55,12 +56,7 @@ def display_ethereum_front():
             response = requests.get(ETH_API_URL)
             if response.status_code == 200:
                 info = response.json()
-                text = (
-                    f"The latest available date is: {info.get("latest_date", "")}\n"
-                    f"The prediction date is: {info.get("prediction_date", "")}\n"
-                    f"The predicted highest price is: {float(info.get("prediction", 0)):.2f}"
-                )
-                st.success(text)
+                st.success(f"Prediction for {info.get('prediction_date', '')} is: {float(info.get('prediction', 0)):.2f} USD")
             else:
                 st.warning(f"Failed to get prediction — API Response: {response.json()}")
         except Exception as e:
