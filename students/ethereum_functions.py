@@ -3,17 +3,24 @@ import requests
 from pandas import DataFrame, to_datetime, Series
 from collections import defaultdict
 import streamlit as st
-import numpy as np
 
-def create_daily_returns(
+def create_returns(
     df : DataFrame,
     col : str = "close"
 ) -> DataFrame:
     df_copy = df.copy()
     if col not in df_copy.columns:
         raise ValueError(f"col '{col}' is not in the DataFrame")
-    df_copy['daily_returns'] = df_copy[col].pct_change(periods = 1).bfill()
-    return df_copy
+    price_changes_dict = {
+        "daily_returns" : 1,
+        "weekly_returns" : 7,
+        "monthly_returns" : 30
+    }
+    price_change_cols = {
+        key : df_copy['close'].pct_change(periods = value).bfill() for key, value in price_changes_dict.items()
+    }
+    df_enriched = df_copy.assign(**price_change_cols)
+    return df_enriched
 
 def create_tecnical_indicators(
     df : DataFrame

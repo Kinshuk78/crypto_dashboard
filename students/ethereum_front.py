@@ -1,7 +1,7 @@
 import requests
 import streamlit as st
 from pandas import to_datetime
-from .ethereum_functions import CriptoInfo, create_tecnical_indicators, create_daily_returns
+from .ethereum_functions import CriptoInfo, create_tecnical_indicators, create_returns
 import plotly.graph_objects as go
 
 ETH_API_URL = "https://at3-api-ethereum.onrender.com/predict/ethereum"
@@ -9,7 +9,7 @@ ETH_API_URL = "https://at3-api-ethereum.onrender.com/predict/ethereum"
 def display_ethereum_front():
     st.title("Ethereum")
     # fetch the data
-    days = 30
+    days = 180
     helper = CriptoInfo(token = "ethereum")
     helper.fetch_ohlc(periods = days)
     helper.fetch_additional_info(periods = days)
@@ -41,13 +41,13 @@ def display_ethereum_front():
     
     if data is not None:
         data = create_tecnical_indicators(data)
-        data = create_daily_returns(data)
+        data = create_returns(data)
         st.markdown("#### Technical indicators")
         col1, col2 = st.columns(2)
         with col1:
             st.line_chart(data[['close', 'sma_7', 'ema_7']])
         with col2:
-            st.line_chart(data[['daily_returns']], y_label = 'daily returns')
+            st.line_chart(data[['daily_returns', 'weekly_returns', 'monthly_returns']])
     
     st.markdown("### Price prediction")
     st.info("This section helps you predict the highest price of the next day from the available information")
