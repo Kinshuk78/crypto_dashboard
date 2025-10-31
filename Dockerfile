@@ -1,25 +1,24 @@
-FROM python:3.11
+FROM python:3.11-slim
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
 WORKDIR /app
 
-# Install Poetry
-RUN curl -sSL https://install.python-poetry.org | python3 -
+# System deps (optional but helpful for scientific stack)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Add Poetry to PATH
-ENV PATH="/root/.local/bin:${PATH}"
+# Copy dependency list and install
+COPY requirements.txt ./
+RUN python -m pip install --upgrade pip \
+    && pip install -r requirements.txt
 
-# Copy Poetry configuration files
-COPY poetry.lock pyproject.toml ./
-
-# Install dependencies (runtime only)
-RUN poetry config virtualenvs.create false \
-    && poetry install --no-root
-
-COPY src/ src/
-COPY .env .
+# Copy app code
+COPY app/ app/
+COPY students/ students/
+COPY github.txt pyproject.toml ./
 
 EXPOSE 8501
-CMD ["streamlit", "run", "src/app/main.py", "--server.fileWatcherType=none", "--server.port=8501", "--server.address=0.0.0.0"]
+CMD ["streamlit", "run", "app/main.py", "--server.fileWatcherType=none", "--server.port=8501", "--server.address=0.0.0.0"]
