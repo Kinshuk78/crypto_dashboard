@@ -5,7 +5,7 @@ import datetime as dt
 import plotly.graph_objects as go
 import numpy as np
 
-API_URL = "https://adv-mlaa-at3-api.onrender.com/predict/solana"
+API_BASE_URL = "https://adv-mlaa-at3-api.onrender.com"
 
 def display_solana_front():
     st.title("Solana")
@@ -87,8 +87,10 @@ def display_solana_front():
         st.markdown("### 📈 Technical Indicators")
         col1, col2 = st.columns(2)
         with col1:
+            st.markdown("#### Simple Moving Average and Exponential Moving Average 7 days")
             st.line_chart(df.set_index("time")[["close", "SMA_7", "EMA_7"]])
         with col2:
+            st.markdown("#### RSI: Relative Strength Index (14-day)")
             st.line_chart(df.set_index("time")[["RSI_14"]])
 
     # Kraken OHLC data
@@ -114,18 +116,55 @@ def display_solana_front():
         st.line_chart(df_kraken.set_index("time")[["close"]])
 
     # Prediction section
+    st.markdown("---")
     st.markdown("## 🤖 Price Prediction")
-    st.info("This section helps you to predict the next-day HIGH price of Solana.")
+    today_str = dt.datetime.now().strftime("%Y-%m-%d")
+    st.info(f"This section helps you to predict tomorrow's HIGH price of Solana using market data and engineered features from last 14 days.")
 
     st.write(f"Actual date for prediction: {dt.date.today()}")
 
-    if st.button("Generate Prediction"):
-        try:
-            response = requests.get(API_URL)
-            if response.status_code == 200:
-                result = response.json()
-                st.success(f"Predicted next-day high price: ${result['high_price']:.2f}")
-            else:
-                st.warning(f"Failed to get prediction — API Response: {response.json()}")
-        except Exception as e:
-            st.error(f"Error contacting prediction API: {e}")
+    if st.button(
+        "🤖 Get Prediction for Tomorrow", type="primary", use_container_width=True
+    ):
+        with st.spinner("Calling prediction API…"):
+            try:
+                response = requests.get(f"{API_BASE_URL}/predict/solana")
+                if response.status_code != 200:
+                    try:
+                        msg = response.json()
+                    except Exception:
+                        msg = response.text
+                    st.warning(f"API Error ({response.status_code}): {msg}")
+                else:
+                    result = response.json()
+                    if result.get("error", False):
+                        msg = result.get("message", "No error message provided. Check API for details")
+                        st.warning(f"API Error: {msg}")
+                    else:
+                        pred_value = result.get("high_price")
+                        todays_high = float(df["high"].iloc[-1])
+                        direction_up = pred_value >= todays_high
+                        delta = pred_value - todays_high
+                        delta_pct = (delta / todays_high) * 100
+
+                        c1, c2, c3 = st.columns(3)
+                        c1.metric("Today's High", f"${todays_high:,.2f}")
+                        c2.metric(
+                            "Predicted Tomorrow High",
+                            f"${pred_value:,.2f}",
+                            delta=f"{delta:+.2f} ({delta_pct:+.2f}%)",
+                            delta_color="normal",
+                        )
+                        # Color the direction text
+                        direction_text = "📈 UP" if direction_up else "📉 DOWN"
+                        direction_color = "green" if direction_up else "red"
+                        c3.markdown(
+                            f"<div style='text-align: center; padding-top: 15px;'><span style='color: {direction_color}; font-size: 18px; font-weight: bold;'>{direction_text}</span></div>",
+                            unsafe_allow_html=True,
+                        )
+            except Exception as e:
+                st.error(f"Error contacting prediction API: {e}")
+    st.markdown("---")
+    st.caption(
+        f"API: {API_BASE_URL} • Data: Kraken (analytics), CoinGecko (overview)"
+    )
