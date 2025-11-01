@@ -35,24 +35,24 @@ def create_tecnical_indicators(
  
 class CriptoInfo:
     def __init__(
-        self,
+        _self,
         token : str = "ethereum"
     ):
-        self.token = token
-        self.headers = {
+        _self.token = token
+        _self.headers = {
             "x-cg-demo-api-key" : "CG-wMi2kd693Povdsi3MEU3pDGz"
         }
         # placeholders
-        self.raw_prices = None
-        self.prices = None
-        self.raw_additional = None
-        self.market_data = None
-    # @st.cache_data
+        _self.raw_prices = None
+        _self.prices = None
+        _self.raw_additional = None
+        _self.market_data = None
+    @st.cache_data
     def fetch_ohlc(
-        self,
+        _self,
         periods : int = 30 # 7, 14, 30, 90, 180, 365 possible values
     ):
-        url = f"https://api.coingecko.com/api/v3/coins/{self.token}/ohlc"
+        url = f"https://api.coingecko.com/api/v3/coins/{_self.token}/ohlc"
         querystring = {
             "vs_currency" : "usd",
             "days" : str(periods),
@@ -63,21 +63,21 @@ class CriptoInfo:
             response = requests.get(
                 url = url,
                 params = querystring,
-                headers = self.headers
+                headers = _self.headers
             )
             response = response.json()
-            self.raw_prices = response
+            _self.raw_prices = response
         except Exception as e:
             raise Exception(f"Error during fetching: '{e}'")
     def modify_raw_prices(
-        self
+        _self
     ):
-        if self.raw_prices is None:
+        if _self.raw_prices is None:
             raise ValueError(f"There is no price data")
         # generate the dataframe
         data = defaultdict(list)
         cols = ['timestamp', 'open', 'high', 'low', 'close']
-        for row in self.raw_prices:
+        for row in _self.raw_prices:
             date, open, high, low, close = row
             data[cols[0]].append(date)
             data[cols[1]].append(open)
@@ -93,13 +93,13 @@ class CriptoInfo:
         filtered_data = data.loc[data.groupby(data['timestamp'].dt.date)['timestamp'].idxmax()]
         filtered_data.reset_index(drop = True, inplace = True)
         filtered_data['timestamp'] = filtered_data['timestamp'].dt.date
-        self.prices = filtered_data
-    # @st.cache_data
+        _self.prices = filtered_data
+    @st.cache_data
     def fetch_additional_info(
-        self,
+        _self,
         periods : int = 30
     ):
-        url = f"https://api.coingecko.com/api/v3/coins/{self.token}/market_chart"
+        url = f"https://api.coingecko.com/api/v3/coins/{_self.token}/market_chart"
         querystring = {
             "vs_currency" : "usd",
             "days" : str(periods),
@@ -111,22 +111,22 @@ class CriptoInfo:
             response = requests.get(
                 url = url,
                 params = querystring,
-                headers = self.headers
+                headers = _self.headers
             )
             response = response.json()
-            self.raw_additional = response
+            _self.raw_additional = response
         except Exception as e:
             raise Exception(f"Error during fetching: '{e}'")
     def generate_input(
-        self
+        _self
     ) -> DataFrame:
-        if self.raw_additional is None:
+        if _self.raw_additional is None:
             raise ValueError(f"There is no additional info")
-        if self.raw_prices is None:
+        if _self.raw_prices is None:
             raise ValueError(f"There is no price data")
-        volume = self.raw_additional.get("total_volumes", [])
+        volume = _self.raw_additional.get("total_volumes", [])
         volume_data = defaultdict[Any, list](list)
-        marketcap = self.raw_additional.get('market_caps', [])
+        marketcap = _self.raw_additional.get('market_caps', [])
         marketcap_data = defaultdict[Any, list](list)
         if len(volume) > 0:
             for row in volume:
@@ -148,7 +148,7 @@ class CriptoInfo:
         marketcap_data['timestamp'] = to_datetime(marketcap_data['timestamp'], unit = "ms")
         marketcap_data['timestamp'] = marketcap_data['timestamp'].dt.date
         # join all the information
-        temp = self.prices.merge(
+        temp = _self.prices.merge(
             right = volume_data,
             how = "inner",
             on = "timestamp"
@@ -159,26 +159,26 @@ class CriptoInfo:
             on = "timestamp"
         )
         return temp
-    # @st.cache_data
+    @st.cache_data
     def get_market_data(
-        self
+        _self
     ):
         url = "https://api.coingecko.com/api/v3/coins/markets"
         querystring = {
             "vs_currency" : "usd",
-            "ids" : self.token,
+            "ids" : _self.token,
             "price_change_percentage" : "24h"
         }
         try:
             response = requests.get(
                 url = url,
                 params = querystring,
-                headers = self.headers
+                headers = _self.headers
             )
             if response.status_code != 200:
                 raise Exception(f"Error due to invalid query")
             data = response.json()[0]
-            self.market_data = {
+            _self.market_data = {
                 "current_price" : data.get("current_price", 0),
                 "market_cap" : data.get("market_cap", 0),
                 "volume" : data.get("total_volume", 0),
