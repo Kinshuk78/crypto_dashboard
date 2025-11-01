@@ -9,7 +9,7 @@ ETH_API_URL = "https://at3-api-ethereum.onrender.com/predict/ethereum"
 def display_ethereum_front():
     st.title("Ethereum")
     # fetch the data
-    days = 180
+    days = 90
     helper = CriptoInfo(token = "ethereum")
     helper.fetch_ohlc(periods = days)
     helper.fetch_additional_info(periods = days)
