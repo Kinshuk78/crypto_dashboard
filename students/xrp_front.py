@@ -219,19 +219,55 @@ def display_xrp_front():
 
     #  Prediction 
     with tabs[3]:
-        st.subheader("Price prediction")
-        st.info("Returns the next day HIGH from the deployed XRP model.")
-        if st.button("Get prediction"):
-            try:
-                r = requests.get(API_URL)
-                if r.status_code == 200:
-                    result = r.json()
-                    st.success(f"Predict date: {result['predict_date']}")
-                    st.success(f"High price: {result['high_price']}")
-                    st.json(result)
+      st.subheader("Price prediction")
+      st.info("Returns the next day HIGH from the deployed XRP model.")
+
+
+      latest_close = None
+      latest_time = None
+      if df is not None and not df.empty:
+        latest_close = float(df["close"].iloc[-1])
+        latest_time = pd.to_datetime(df["time"].iloc[-1]).date()
+
+      if st.button("Get prediction"):
+        try:
+            r = requests.get(API_URL, timeout=30)
+            if r.status_code == 200:
+                res = r.json()
+                predict_date = res.get("predict_date")
+                pred_high = float(res.get("high_price"))
+
+                if latest_close:
+                    pct_move = (pred_high - latest_close) / latest_close
+                    # headline metrics
+                    m1, m2, m3 = st.columns(3)
+                    m1.metric("Latest close", f"{latest_close:.4f} USD", help=f"As of {latest_time}")
+                    m2.metric("Predicted next day HIGH", f"{pred_high:.4f} USD")
+                    m3.metric("Expected change", f"{pct_move*100:,.2f}%", delta=f"{pct_move*100:,.2f}%")
+
+                    st.progress(
+                        value=float(np.clip((pct_move + 0.1) / 0.2, 0, 1)),
+                        text="Scaled change band centered at 0 pct"
+                    )
+
+                    if pct_move >= 0:
+                        st.success(
+                            f"Model expects the next day HIGH on {predict_date} to be about "
+                            f"{pct_move*100:,.2f}% above the latest close."
+                        )
+                    else:
+                        st.warning(
+                            f"Model expects the next day HIGH on {predict_date} to be about "
+                            f"{pct_move*100:,.2f}% below the latest close."
+                        )
                 else:
-                    st.warning(f"API returned {r.status_code}")
-                    with st.expander("Response body"):
-                        st.write(r.text)
-            except Exception as e:
-                st.error(f"Error contacting API: {e}")
+                    st.metric("Predicted next day HIGH", f"{pred_high:.4f} USD")
+                    st.caption("Could not compute percent change because no recent close was available.")
+
+            else:
+                st.warning(f"API returned {r.status_code}")
+                with st.expander("Response body"):
+                    st.write(r.text)
+        except Exception as e:
+            st.error(f"Error contacting API: {e}")
+
