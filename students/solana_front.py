@@ -18,7 +18,9 @@ def display_solana_front():
     def fetch_coingecko_ohlc(crypto_symbol, vs_currency="usd", days=30):
         url = f"https://api.coingecko.com/api/v3/coins/{crypto_symbol}/ohlc"
         params = {"vs_currency": vs_currency, "days": days}
-        resp = requests.get(url, params=params)
+        resp = requests.get(url, params=params, headers={
+            "x-cg-demo-api-key" : "CG-wMi2kd693Povdsi3MEU3pDGz"
+        })
         if resp.status_code != 200:
             st.error("Failed to fetch CoinGecko data")
             return None
@@ -50,7 +52,9 @@ def display_solana_front():
     def fetch_market_data(crypto_symbol, vs_currency="usd"):
         url = f"https://api.coingecko.com/api/v3/coins/markets"
         params = {"vs_currency": vs_currency, "ids": crypto_symbol}
-        resp = requests.get(url, params=params)
+        resp = requests.get(url, params=params, headers={
+            "x-cg-demo-api-key" : "CG-wMi2kd693Povdsi3MEU3pDGz"
+        })
         if resp.status_code == 200 and len(resp.json()) > 0:
             data = resp.json()[0]
             return {
