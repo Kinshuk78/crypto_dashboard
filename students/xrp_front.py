@@ -223,7 +223,7 @@ def display_xrp_front():
         st.info("Returns the next day HIGH from the deployed XRP model.")
         if st.button("Get prediction"):
             try:
-                r = requests.get(API_URL, timeout=30)
+                r = requests.get(API_URL)
                 if r.status_code == 200:
                     result = r.json()
                     st.success(f"Predict date: {result['predict_date']}")
