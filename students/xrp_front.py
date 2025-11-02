@@ -59,12 +59,12 @@ def display_xrp_front():
 
     tabs = st.tabs(["Overview", "Indicators", "Exchange", "Prediction"])
 
-    # =============== Overview ===============
+    #  Overview 
     with tabs[0]:
         if df is None or df.empty:
             st.warning("No recent OHLC data available.")
         else:
-            # headline chart with Bollinger Bands
+       
             bb_len, bb_k = 20, 2.0
             df["bb_mid"] = df["close"].rolling(bb_len).mean()
             df["bb_std"] = df["close"].rolling(bb_len).std()
@@ -124,7 +124,7 @@ def display_xrp_front():
             st.caption("Close price sparkline")
             st.plotly_chart(_sparkline(perf.tail(90)), use_container_width=True)
 
-    # =============== Indicators ===============
+    # Indicators
     with tabs[1]:
         if df is None or df.empty:
             st.info("Indicators will appear once price data loads.")
@@ -182,7 +182,7 @@ def display_xrp_front():
             else:
                 s2.metric("Max drawdown", "n/a")
 
-    # =============== Exchange ===============
+    #  Exchange data
     with tabs[2]:
         @st.cache_data
         def fetch_kraken(pair="XRPUSD", interval=1440):
@@ -217,7 +217,7 @@ def display_xrp_front():
             fig_vol.update_layout(height=300, barmode="overlay")
             st.plotly_chart(fig_vol, use_container_width=True)
 
-    # =============== Prediction ===============
+    #  Prediction 
     with tabs[3]:
         st.subheader("Price prediction")
         st.info("Returns the next day HIGH from the deployed XRP model.")
