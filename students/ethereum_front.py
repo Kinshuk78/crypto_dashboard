@@ -3,20 +3,55 @@ import streamlit as st
 from pandas import to_datetime
 from .ethereum_functions import CriptoInfo, create_tecnical_indicators, create_returns
 import plotly.graph_objects as go
+from typing import Literal
+import pandas as pd
 
 ETH_API_URL = "https://at3-api-ethereum.onrender.com/predict/ethereum"
+
+CURRENCY_PAIR = "XETHZUSD"
+
+@st.cache_data
+def fetch_kraken_ohlc(
+    currency_pair : str,
+    interval : Literal[1, 5, 15, 30, 60, 240, 1440, 10080, 21600]
+):
+    url = "https://api.kraken.com/0/public/OHLC"
+    params = {
+        "pair" : currency_pair,
+        "interval" : interval
+    }
+    try:
+        response = requests.get(
+            url = url,
+            params = params
+        )
+        if response.status_code != 200:
+            raise Exception("Invalid request")
+        json_response = response.json()
+        data = json_response['result'][currency_pair]
+        df = pd.DataFrame(
+            data = data,
+            columns = ["timestamp", "open", "high", "low", "close", "vwap", "volume", "count"]
+        )
+        df['timestamp'] = pd.to_datetime(df['timestamp'], unit = "s")
+        df[["open", "high", "low", "close", "volume"]] = df[["open", "high", "low", "close", "volume"]].astype(float)
+        df.set_index(keys = ['timestamp'], inplace = True)
+        return df
+    except Exception as e:
+        raise Exception(f"Error fetching the data: '{e}'")
 
 def display_ethereum_front():
     st.title("Ethereum")
     # fetch the data
-    days = 90
+    days = 30
     helper = CriptoInfo(token = "ethereum")
-    helper.fetch_ohlc(periods = days)
-    helper.fetch_additional_info(periods = days)
-    helper.modify_raw_prices()
-    data = helper.generate_input()
-    data['timestamp'] = to_datetime(data['timestamp'])
-    data.set_index(keys = 'timestamp', inplace = True)
+    # helper.fetch_ohlc(periods = days)
+    # helper.fetch_additional_info(periods = days)
+    # helper.modify_raw_prices()
+    # data = helper.generate_input()
+    # data['timestamp'] = to_datetime(data['timestamp'])
+    # data.set_index(keys = 'timestamp', inplace = True)
+    data = fetch_kraken_ohlc(CURRENCY_PAIR, days)
     if data is not None:
         st.subheader(f"Ethereum - Last {days} days")
         fig = go.Figure(data=[
