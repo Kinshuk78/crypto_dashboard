@@ -13,7 +13,7 @@ CURRENCY_PAIR = "XETHZUSD"
 @st.cache_data
 def fetch_kraken_ohlc(
     currency_pair : str,
-    interval : Literal[1, 5, 15, 30, 60, 240, 1440, 10080, 21600]
+    interval : int
 ):
     url = "https://api.kraken.com/0/public/OHLC"
     params = {
