@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 
 API_BASE = "https://fastapi-at3.onrender.com"
 API_URL = f"{API_BASE}/predict/xrp"
+API_HEALTH_URL = f"{API_BASE}/health/"
 
 def _fmt_price(x):
     return "n/a" if x is None or pd.isna(x) else f"${x:,.4f}"
@@ -105,6 +106,24 @@ def _risk_label(ann_vol, max_drawdown):
     if ann_vol >= 0.35 or max_drawdown <= -0.10:
         return "Medium"
     return "Low"
+
+def _request_xrp_prediction():
+    """
+    Render free-tier services can sleep and need extra time on the first request.
+    Warm the health endpoint, then retry the prediction once with a longer read timeout.
+    """
+    last_error = None
+    for attempt in range(2):
+        try:
+            if attempt == 0:
+                try:
+                    requests.get(API_HEALTH_URL, timeout=(5, 20))
+                except requests.exceptions.RequestException:
+                    pass
+            return requests.get(API_URL, timeout=(10, 90))
+        except requests.exceptions.RequestException as exc:
+            last_error = exc
+    raise last_error
 
 def display_xrp_front():
     st.title("XRP")
@@ -347,7 +366,8 @@ def display_xrp_front():
 
       if st.button("Get prediction"):
         try:
-            r = requests.get(API_URL, timeout=30)
+            with st.spinner("Waking XRP prediction service and generating forecast..."):
+                r = _request_xrp_prediction()
             if r.status_code == 200:
                 res = r.json()
                 predict_date = res.get("predict_date")
@@ -384,6 +404,17 @@ def display_xrp_front():
                 st.warning(f"API returned {r.status_code}")
                 with st.expander("Response body"):
                     st.write(r.text)
+        except requests.exceptions.Timeout as e:
+            st.warning(
+                "The XRP prediction API took too long to respond. This usually happens when the Render service is waking up. "
+                "Wait 30-60 seconds and click Get prediction again."
+            )
+            with st.expander("Technical details"):
+                st.write(str(e))
+        except requests.exceptions.RequestException as e:
+            st.error("Could not reach the XRP prediction API. Check whether the Render service is online and try again.")
+            with st.expander("Technical details"):
+                st.write(str(e))
         except Exception as e:
             st.error(f"Error contacting API: {e}")
 
