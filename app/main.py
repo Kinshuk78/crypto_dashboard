@@ -38,5 +38,4 @@ elif selected == "Solana":
 
 # Footer
 st.sidebar.markdown("---")
-st.sidebar.markdown("🧠 Powered by Adv MLAA AT3 - Group 29")
 st.sidebar.markdown("🧑‍💻 Built with Streamlit")
